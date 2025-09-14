@@ -10,7 +10,9 @@
 - [Creating and applying model migrations](#creating-and-applying-model-migrations)
 - [Setting up an administration site for your models](#setting-up-an-administration-site-for-your-models)
 - [Working with QuerySets and model managers](#working-with-querysets-and-model-managers)
+    - [Creating model managers](#creating-model-managers)
 - [Building views, templates, and URLs](#building-views-templates-and-urls)
+    - [Creating list and detail views](#creating-list-and-detail-views)
 - [Understanding the Django request/response cycle](#understanding-the-django-requestresponse-cycle)
 
 # 1. Building a Blog Application
@@ -220,7 +222,185 @@
     >>> user, created = User.objects.get_or_create(username='user2')
     ```
   - Update objects
+    ```shell
+      >>> post.title = 'New title'
+      >>> post.save()
+    ```
+
   - Retrieving objects
+    ```shell
+    >>> all_posts = Post.objects.all()
+    
+    >>> Post.objects.all()
+    <QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django Reinhardt?>]>
+    ```
   - Filtering objects
+    ```shell
+        >>> Post.objects.filter(title="Who was Django Reinhardt?")
+        >>> print(posts.query)
+        SELECT  "blog_post"."id", "blog_post"."title", "blog_post"."slug",
+                "blog_post"."body", "blog_post"."publish", "blog_post"."created", 
+                "blog_post"."updated", "blog_post"."status", "blog_post"."author_id" 
+        FROM "blog_post" WHERE "blog_post"."title" = Who was Django Reinhardt? ORDER BY "blog_post"."publish" DESC
+    ```
+  - Using field lookups
+    ```shell
+      >>> Post.objects.filter(id__exact=1)
+      <QuerySet [<Post: Who was Django Reinhardt?>]>
+
+      >>> Post.objects.filter(title__exact='who was django reinhardt?')
+      <QuerySet []>
+
+      >>> Post.objects.filter(title__contains='Django')
+      <QuerySet [<Post: Who was Django Reinhardt?>]>
+
+      >>> Post.objects.filter(id__in=[1, 3])
+      <QuerySet [<Post: One more post>, <Post: Who was Django Reinhardt?>]>
+
+      >>> Post.objects.filter(id__in=[1, 2, 3])
+      <QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django Reinhardt?>]>
+
+      >>> Post.objects.filter(id__gt=3)
+      <QuerySet []>
+
+      >>> Post.objects.filter(id__gte=3)
+      <QuerySet [<Post: One more post>]>
+
+      >>> Post.objects.filter(id__lt=3)
+      <QuerySet [<Post: New title>, <Post: Who was Django Reinhardt?>]>
+
+      >>> Post.objects.filter(id__lte=3)
+      <QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django Reinhardt?>]>
+
+      >>> Post.objects.filter(publish__date=date(2025, 9, 12))
+      <QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django Reinhardt?>]>
+
+      >>> Post.objects.filter(author__username='admin')
+      <QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django Reinhardt?>]>
+    ```
+  - Chaining filters
+    ```shell 
+      Post.objects.filter(publish__year=2025) \
+                  .filter(author__username='admin')
+      <QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django Reinhardt?>]>
+
+      >>> Post.objects.order_by('author', 'title')
+      <QuerySet [<Post: New title>, <Post: One more post>, <Post: Who was Django Reinhardt?>, <Post: New post user2>]
+    ```
+
+  - Ordering objects
+      ```shell
+      >>> Post.objects.order_by('author', 'title')
+
+      <QuerySet [<Post: New title>, <Post: One more post>, <Post: Who was Django Reinhardt?>, <Post: New post user2>]
+      ```
+  - Limiting QuerySets
+    
+    ```shell
+      >>> Post.objects.all()[:3]
+      <QuerySet [<Post: New post user2>, <Post: One more post>, <Post: New title>]>
+    ```
+  - Deleting objects
+    ```shell
+      >>> post = Post.objects.get(id=2)
+      post.delete()
+    ```
+  - Complex lookups with Q objects
+    ```shell
+      >>> starts_who = Q(title__istartswith='who')
+      >>> starts_one = Q(title__istartswith='one')
+      >>> Post.objects.filter(starts_who | starts_one)
+      >>> <QuerySet [<Post: One more post>, <Post: Who was Django Reinhardt?>]>
+    ```
+  - More on QuerySets
+    > https://docs.djangoproject.com/en/5.0/ref/models/querysets/
+
+  - #### Creating model managers
+    ```python
+    class PublishedManager(models.Manager):
+        def get_queryset(self):
+            return (
+              super().get_queryset().filter(status=Post.Status.PUBLISHED)
+            )
+    class Post(models.Model):
+      # models fields
+      # ...
+      objects = models.Manager() # The default manager.
+      published = PublishedManager() # custom manager.
+      # ...
+    ```
 - ### Building views, templates, and URLs
+  - #### Creating list and detail views
+    ```python
+      from django.shortcuts import render
+      from .models import Post
+
+      def post_list(request):
+          posts = Post.published.all()
+          return render(request, 'blog/post/list.html', {'posts': posts})
+
+      def post_detail(request, id):
+          try:
+              post = Post.published.get(id=id)
+          except Post.DoesNotExist:
+              raise Http404("No Post found.")
+          return render(request, 'blog/post/detail.html', {"post": post})
+    ```
+  - #### Adding URL patterns for your views
+    ```python
+    # blog/urls.py
+      from django.urls import path
+      from . import views
+
+      app_name = 'blog'
+
+      urlpatterns = [
+      # post views
+          path('', views.post_list, name='post_list'),
+          path('<int:id>/', views.post_detail, name='post_detail'),
+      ]
+      # mysite/urls.py
+
+      from django.contrib import admin
+      from django.urls import include, path
+
+      urlpatterns = [
+          path('admin/', admin.site.urls),
+          path('blog/', include('blog.urls', namespace='blog')),
+      ]
+    ```
+  - #### Creating templates for your views
+    ```shell
+    templates/
+        blog/
+            base.html
+            post/
+                list.html
+                detail.html
+    ```
+  - #### Creating a base template
+    This text will be <mark>highlighted</mark>.
+    
+    ```html
+      {% load static %}
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title> {% block title %}{% endblock %} </title>
+          <link rel="stylesheet" href="{% static "css/blog.css" %}">
+      </head>
+      <body>
+          <div id="content">
+              {% block content %}
+              {% endblock %}
+              <div id="sidebar">
+                  <h2>My blog</h2>
+                  <p>This is my blog.</p>
+              </div>
+          </div>
+      </body>
+      </html>
+    ```
 - ### Understanding the Django request/response cycle
