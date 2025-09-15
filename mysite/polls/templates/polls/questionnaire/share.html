@@ -1,0 +1,19 @@
+{% extends "polls/base.html" %}
+
+{% block title %}Share a questionnaire{% endblock %}
+
+{% block content %}
+{% if sent %}
+<h1>E-mail successfully sent</h1>
+<p>
+    "{{ questionnaire.title }}" was successfully sent to {{ form.cleaned_data.to }}.
+</p>
+{% else %}
+<h1>Share "{{ questionnaire.title }}" by e-mail</h1>
+<form method="post">
+    {{form.as_p}}
+    {% csrf_token %}
+    <input type="submit" value="Sent e-mail">
+</form>
+{% endif %}
+{% endblock %}

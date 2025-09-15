@@ -17,5 +17,7 @@
     </ul>
     {% endfor %}
 </div>
-
+<p>
+    <a href="{% url "polls:questionnaire_share" questionnaire.id %}">Share this questionnaire</a>
+</p>
 {% endblock %}

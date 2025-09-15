@@ -1,7 +1,9 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView
+from django.core.mail import send_mail
 from .models import Questionnaire
 from .forms import EmailQuestionnaireForm
+
 
 class QuestionnaireListView(ListView):
     queryset = Questionnaire.objects.all()
@@ -25,12 +27,40 @@ def questionnaire_share(request, id):
         Questionnaire,
         id=id,
     )
+    sent = False
+    
     if request.method == "POST":
         # form was submitted
         form = EmailQuestionnaireForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data
             # ... send email
+            questionnaire_url = request.build_absolute_uri(
+                questionnaire.get_absolute_url()
+            )
+            subject = (
+                f"{cd['name']} ({cd['email']})"
+                f"recommends you see {questionnaire.title}"
+            )
+            message = (
+                f"Read {questionnaire.title} at {questionnaire_url}\n\n"
+                f"{cd['name']}\'s comments: {cd['comments']}"
+            )
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=None,
+                recipient_list=[cd['to']]
+            )
+            sent = True
     else:
         form = EmailQuestionnaireForm()
-    return render(request, 'polls/questionnaire/share.html', {"questionnaire": questionnaire, "form": form})
+    return render(
+        request,
+            'polls/questionnaire/share.html',
+            {
+                "questionnaire": questionnaire, 
+                "form": form,
+                "sent": sent
+            }
+        )
