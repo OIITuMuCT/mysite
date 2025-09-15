@@ -1,6 +1,13 @@
-from django.shortcuts import render
-
+from django.shortcuts import render, get_object_or_404
+from django.views.generic import ListView
 from .models import Questionnaire
+from .forms import EmailQuestionnaireForm
+
+class QuestionnaireListView(ListView):
+    queryset = Questionnaire.objects.all()
+    context_object_name = 'questionnaires'
+    paginate_by = 2
+    template_name = 'polls/questionnaire/list.html'
 
 def questionnaire_list(request):
     """ Выводит на экран список Анкет """
@@ -10,3 +17,20 @@ def questionnaire_list(request):
 def questionnaire_detail(request, id):
     questionnaire = Questionnaire.objects.get(id=id)
     return render(request, 'polls/questionnaire/detail.html', {'questionnaire': questionnaire})
+
+
+def questionnaire_share(request, id):
+    # Retrieve questionnaire by id
+    questionnaire = get_object_or_404(
+        Questionnaire,
+        id=id,
+    )
+    if request.method == "POST":
+        # form was submitted
+        form = EmailQuestionnaireForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            # ... send email
+    else:
+        form = EmailQuestionnaireForm()
+    return render(request, 'polls/questionnaire/share.html', {"questionnaire": questionnaire, "form": form})
