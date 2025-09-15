@@ -1,0 +1,10 @@
+from django.urls import path
+from . import views
+
+
+app_name = "polls"
+
+urlpatterns = [
+    path("", views.questionnaire_list, name="questionnaire_list"),
+    path("<int:id>/", views.questionnaire_detail, name='questionnaire_detail'),
+]

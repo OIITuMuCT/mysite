@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> {% block title %}{% endblock %} </title>
+    <link rel="stylesheet" href="{% static "css/polls.css" %}">
+</head>
+<body>
+    <nav class="navbar">
+
+        <a href="{% url "blog:post_list" %}">Post List</a>
+    </nav>
+    <div id="content">
+        {% block content %}
+        {% endblock %}
+        </div>
+        <div id="sidebar">
+            <h2>My Questionnaires</h2>
+            <p>This is my Polls.</p>
+        </div>
+
+        
+
+</body>
+</html>

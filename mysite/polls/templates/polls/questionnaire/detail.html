@@ -1,0 +1,21 @@
+{% extends "polls/base.html" %}
+
+{% block title %}Questionnaire Detail{% endblock %}
+
+{% block content %}
+<h1>Questionnaire Detail</h1>
+<div>
+    {{ questionnaire.title }}
+</div>
+<div>
+    {{ questionnaire.description}}
+</div>
+<div>
+    {% for i in questionnaire.question_list %}
+    <ul>
+        {{ i }}
+    </ul>
+    {% endfor %}
+</div>
+
+{% endblock %}

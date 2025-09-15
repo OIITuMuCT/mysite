@@ -1,0 +1,24 @@
+{% extends "polls/base.html" %}
+
+{% block title %}My Questionnaires{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Questionnaires List</h1>
+    <div class="container">
+    {% for questionnaire in questionnaires %}
+    <ul>
+        <a href="{{ questionnaire.get_absolute_url }}">
+            {{ questionnaire.title }}
+        </a>
+        {% comment %} <a href={% url "polls:questionnaire_detail" questionnaire.id %}> {% endcomment %}
+            
+        {% comment %} </a> {% endcomment %}
+    </ul>
+    
+    {% endfor %}
+    </div>
+
+    
+</div>
+
+{% endblock %}
