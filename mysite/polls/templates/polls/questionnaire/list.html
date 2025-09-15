@@ -10,15 +10,10 @@
         <a href="{{ questionnaire.get_absolute_url }}">
             {{ questionnaire.title }}
         </a>
-        {% comment %} <a href={% url "polls:questionnaire_detail" questionnaire.id %}> {% endcomment %}
-            
-        {% comment %} </a> {% endcomment %}
     </ul>
     
     {% endfor %}
     </div>
-
-    
 </div>
-
+{% include "pagination.html" with page=page_obj %}
 {% endblock %}
