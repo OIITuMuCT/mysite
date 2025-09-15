@@ -8,6 +8,10 @@
     <link rel="stylesheet" href="{% static "css/blog.css" %}">
 </head>
 <body>
+    <nav class="navbar">
+        <a href="{% url "polls:questionnaire_list" %}">Questionnaires List</a>
+    </nav>
+    
     <div id="content">
         {% block content %}
         {% endblock %}
@@ -16,8 +20,5 @@
             <h2>My blog</h2>
             <p>This is my blog.</p>
         </div>
-
-        
-
 </body>
 </html>
