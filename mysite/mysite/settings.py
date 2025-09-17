@@ -28,6 +28,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+SITE_ID = 1
 
 # Application definition
 
@@ -37,7 +38,10 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "django.contrib.sites",
+    "django.contrib.sitemaps",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
     "taggit",
     "blog.apps.BlogConfig",
 ]
@@ -135,3 +139,13 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
 # EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 # SMTP for sent to email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST"),
+    }
+}
