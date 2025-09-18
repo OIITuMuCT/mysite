@@ -17,7 +17,7 @@
 
   #### back chapter01
 
-
+---
 
 [2. Enhancing Your Blog and Adding Social Features](#2-enhancing-your-blog-and-adding-social-features)
 ---
@@ -31,6 +31,7 @@
 
   #### back chapter02
 
+---
 
 [3. Extending Your Blog Application](#3-extending-your-blog-application)
 ---
@@ -44,6 +45,16 @@
 - [Implementing a full-text search engine with Django and PostgreSQL](#implementing-a-full-text-search-engine-with-django-and-postgresql)
 
 ---
+
+[4. Building a Social Website](#4-building-a-social-website)
+---
+
+  - [Creating a login view](#creating-a-login-view)
+  - [Using the Django authentication framework](#using-the-django-authentication-framework)
+  - [Creating templates for Django login, logout, password change, and password reset views](#creating-templates-for-django-login-logout-password-change-and-password-reset-views)
+  - [Creating user registration views](#creating-user-registration-views)
+  - [Extending the user model with a custom profile model](#extending-the-user-model-with-a-custom-profile-model)
+  - [Configuring the project for media file uploads](#configuring-the-project-for-media-file-uploads)
 
   #### back chapter03
 
@@ -1455,4 +1466,11 @@
 
   [back chapter03](#back-chapter03)
 
+# 4. Building a Social Website
 
+  - ### Creating a login view
+  - ### Using the Django authentication framework
+  - ### Creating templates for Django login, logout, password change, and password reset views
+  - ### Creating user registration views
+  - ### Extending the user model with a custom profile model
+  - ### Configuring the project for media file uploads
