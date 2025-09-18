@@ -1,5 +1,5 @@
 [1. Building a Blog Application ](#1-building-a-blog-application)
-
+---
 - [Installing Python](#installing-python)
 - [Creating a Python virtual environment](#creating-a-python-virtual-environment)
 - [Installing Django](#installing-django)
@@ -15,8 +15,12 @@
   - [Creating list and detail views](#creating-list-and-detail-views)
 - [Understanding the Django request/response cycle](#understanding-the-django-requestresponse-cycle)
 
-[2. Enhancing Your Blog and Adding Social Features](#2-enhancing-your-blog-and-adding-social-features)
+  #### back chapter01
 
+
+
+[2. Enhancing Your Blog and Adding Social Features](#2-enhancing-your-blog-and-adding-social-features)
+---
 - [Using canonical URLs for models](#using-canonical-urls-for-models)
 - [Creating SEO-friendly URLs for posts](#creating-seo-friendly-urls-for-posts)
 - [Adding pagination to the post list view](#adding-pagination-to-the-post-list-view)
@@ -26,6 +30,22 @@
 - [Adding comments to posts using forms from models](#adding-comments-to-posts-using-forms-from-models)
 
   #### back chapter02
+
+
+[3. Extending Your Blog Application](#3-extending-your-blog-application)
+---
+- [Implementing tagging using django-taggit](#implementing-tagging-using-django-taggit)
+- [Retrieving posts by similarity](#retrieving-posts-by-similarity)
+- [Creating custom template tags and filters to display the latest posts and most commented posts](#creating-custom-template-tags-and-filters-to-display-the-latest-posts-and-most-commented-posts)
+- [Adding a sitemap to the site](#adding-a-sitemap-to-the-site)
+- [Creating feeds for blog posts](#creating-feeds-for-blog-posts)
+- [Installing PostgreSQL](#installing-postgresql)
+- [Using fixtures to dump and load data into the database](#using-fixtures-to-dump-and-load-data-into-the-database)
+- [Implementing a full-text search engine with Django and PostgreSQL](#implementing-a-full-text-search-engine-with-django-and-postgresql)
+
+---
+
+  #### back chapter03
 
 # 1. Building a Blog Application
 
@@ -495,6 +515,8 @@
   4. -> DATABASE: SELECT\*FROM POSTS ID = 3
      <- 3, "One more post", "Post body."
   5. render Html template
+
+  [back chapter02](#back-chapter02)
 
 # 2. Enhancing Your Blog and Adding Social Features
 
@@ -1035,3 +1057,402 @@
         </form>
       ```
 [back chapter02](#back-chapter02)
+
+# 3. Extending Your Blog Application
+
+- ### Implementing tagging using django-taggit
+  > python -m pip install django-taggit==5.0.1
+  ```python
+  # Add to taggit to INSTALLED_APPS setting
+      INSTALLED_APPS = [
+          'django.contrib.admin',
+          'django.contrib.auth',
+          'django.contrib.contenttypes',
+          'django.contrib.sessions',
+          'django.contrib.messages',
+          'django.contrib.staticfiles',
+          'taggit',
+          'blog.apps.BlogConfig',
+      ]
+
+      from taggit.managers import TaggableManager
+
+      class Post(models.Model):
+          # ...
+          tags = TaggableManager()
+    ```
+    > python manage.py makemigrations blog
+
+    > python manage.py migrate
+
+    ```shell
+        >>> from blog.models import Post
+        >>> post = Post.objects.get(id=1)
+
+        >>> post.tags.add('music', 'jazz', 'django')
+        >>> post.tags.all()
+        <QuerySet [<Tag: jazz>, <Tag: music>, <Tag: django>]>
+
+        >>> post.tags.remove('django')
+        >>> post.tags.all()
+        <QuerySet [<Tag: jazz>, <Tag: music>]>
+    ```
+
+    ```html
+      {% extends "blog/base.html" %}
+      {% block title %}My Blog{% endblock %}
+      {% block content %}
+        <h1>My Blog</h1>
+        {% for post in posts %}
+          <h2>
+            <a href="{{ post.get_absolute_url }}">
+              {{ post.title }}
+            </a>
+          </h2>
+          <p class="tags">Tags: {{ post.tags.all|join:", " }}</p>
+          <p class="date">
+            Published {{ post.publish }} by {{ post.author }}
+          </p>
+          {{ post.body|truncatewords:30|linebreaks }}
+        {% endfor %}
+          {% include "pagination.html" with page=page_obj %}
+      {% endblock %}
+    ```
+    ```python
+    def post_list(request, tag_slug=None):
+        post_list = Post.published.all()
+        tag = None
+        if tag_slug:
+            tag = get_object_or_404(Tag, slug=tag_slug)
+            post_list = post_list.filter(tags__in=[tag])
+        # ...
+
+        {"post": post, "tag": tag}
+
+        # Add URL pattern to list posts by tag:
+        path(
+            'tag/<slug:tag_slug>/', views.post_list, name='post_list_by_tag'
+        ),
+    ```
+    ```html
+      {% extends "blog/base.html" %}
+
+      {% block title %}My Blog{% endblock %}
+      
+      {% block content %}
+        <h1>My Blog</h1>
+        {% if tag %}
+          <h2>Posts tagged with "{{ tag.name }}"</h2>
+        {% endif %}
+        {% for post in posts %}
+          <h2>
+            <a href="{{ post.get_absolute_url }}">
+              {{ post.title }}
+            </a>
+          </h2>
+              <p class="tags">Tags: 
+                {% for tag in post.tags.all %}
+                  <a href="{% url "blog:post_list_by_tag" tag.slug %}">
+                    {{ tag.name}}
+                  </a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              </p>
+          <p class="date">
+            Published {{ post.publish }} by {{ post.author }}
+          </p>
+          {{ post.body|truncatewords:30|linebreaks }}
+        {% endfor %}
+          {% include "pagination.html" with page=posts %}
+      {% endblock %}
+    ```
+
+
+
+- ### Retrieving posts by similarity
+
+  1. Retrieve all tags for the current post.
+  2. Get all posts that are tagged with any of those tags.
+  3. Exclude the current post from that list to avoid recommending the same post.
+  4. Order the results by the number of tags shared with the current post.
+  5. In the case of two or more posts with the same number of tags, recommend the most recent post.
+  6. Limit the query to the number of posts you want to recommend.
+
+- ### Creating custom template tags and filters to display the latest posts and most commented posts
+- ### Adding a sitemap to the site
+  
+- ### Creating feeds for blog posts
+- ### Installing PostgreSQL
+    1. > `pip install psycopg2-binary`
+    2. > `sudo su postgres or psql postgres`
+    3. > CREATE DATABASE <db_name>;
+    4. > CREATE USER <user_name> WITH PASSWORD 'password';
+    5. > ALTER DATABASE <db_name> OWNER TO <db_user>;
+    6. > GRANT ALL PRIVILEGES ON DATABASE coredb TO core;
+    7. > ALTER USER core CREATEDB;
+    8. > Adding to settings.py
+
+        ```python
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'NAME': 'blog',
+                'USER': 'blog',
+                'PASSWORD': 'qwerty',
+                'HOST': 'localhost',
+                'PORT': '5342',
+            }
+        }
+        ```
+
+    9. > `python manage.py migrate`
+
+
+
+
+
+- ### Using fixtures to dump and load data into the database
+    > `python manage.py dumpdata --indent=2 --output=mysite_data.json`
+
+    > python -Xutf8 manage.py dumpdata --indent=2 --output=mysite_data.json
+    
+    > Loading the data into the new database
+
+    > `python manage.py loaddata mysite_data.json`
+- ### Implementing a full-text search engine with Django and PostgreSQL
+-  ### Search
+  - #### Simple search lookups
+    ```python
+      INSTALLED_APPS = [
+          # ... 
+          'django.contrib.staticfiles',
+          # adding following:
+          'django.contrib.postgres',
+
+          'taggit',
+          'blog.apps.BlogConfig',
+      ]
+      ```
+      ```shell
+        >>> from blog.models import Post
+        >>> Post.objects.filter(title__search='django')
+        <QuerySet [<Post: Who was Django Reinhardt?>]>
+      ```
+  - #### Searching against multiple fields
+    ```shell
+      >>> from django.contrib.postgres.search import SearchVector
+      >>> from blog.models import Post
+      >>>
+      >>> Post.objects.annotate(
+      ...     search=SearchVector('title', 'body'),
+      ... ).filter(search='django')
+      <QuerySet [<Post: Markdown post>, <Post: Who was Django Reinhardt?>]>
+    ```
+
+  - #### Building a search view
+    > Edit **forms.py** file of the blog application and add the following form:
+    ```python
+        class SearchForm(forms.Form):
+            query = forms.CharField()
+    ```
+    > Edit the **views.py** file ot the blog app and the following code to it:
+    ```python
+      # ...
+      from django.contrib.postgres.search import SearchVector
+      from .forms import CommentForm, EmailPostForm, SearchForm
+
+      # ...
+      def post_search(request):
+          form = SearchForm()
+          query = None
+          results = []
+
+          if 'query' in request.GET:
+              form = SearchForm(request.GET)
+              if form.is_valid():
+                  query = form.cleaned_data['query']
+                  results = (
+                      Post.published.annotate(
+                          search=SearchVector('title', 'body'),
+                      )
+                      .filter(search=query)
+                  )
+          return render(
+              request, 'blog/post/search.html', 
+              {
+                  'form': form,
+                  'query': query,
+                  'results': results
+              }
+          )
+      ```
+      > Create a new file inside the templates/blog/post/ directory, name it search.html, and add the following code to it:
+      ```html
+        {% extends "blog/base.html" %}
+        {% load blog_tags %}
+
+        {% block title %}Search{% endblock %}
+
+        {% block content %}
+          {% if query %}
+            <h1>Posts containing "{{ query }}"</h1>
+            <h3>
+            {% with results.count as total_results %}
+              Found {{ total_results }} result{{ total_results|pluralize }}
+            {% endwith %}
+            </h3>
+            {% for post in results %}
+              <h4>
+                <a href="{{ post.get_absolute_url }}">
+                  {{ post.title }}
+                </a>
+              </h4>
+              {{ post.body|markdown|truncatewords_html:12 }}
+            {% empty %}
+            <p>There are no results for your query.</p>
+            {% endfor %}
+            <p><a href="{% url "blog:post_search" %}">Search again</a></p>
+          {% else %}
+            <h1>Search for posts</h1>
+            <form method="get">
+              {{ form.as_p }}
+              <input type="submit" value="Search">
+            </form>
+          {% endif %}
+        {% endblock %}
+      ```
+      > edit the urls.py file of the blog app and the following URL pattern
+      
+      `path('search/', views.post_search, name='post_search'),`
+  - ### Stemming and ranking results
+    > Edit the views.py file of the blog application and add the following imports:
+    ```python
+      from django.contrib.postgres.search import (
+          SearchVector,
+          SearchQuery,
+          SearchRank
+      )
+
+      def post_search(request):
+          form = SearchForm()
+          query = None
+          results = []
+
+          if 'query' in request.GET:
+              form = SearchRequest(request.GET)
+              if form.is_valid():
+                  query = form.cleaned_data['query']
+                  search_vector = SearchVector('title', 'body')
+                  search_query = SearchQuery(query)
+                  results = (
+                      Post.published.annotate(
+                          search=search_vector,
+                          rank=SearchRank(search_vector, search_query)
+                      )
+                      .filter(search=search_query)
+                      .order_by('-rank')
+                  )
+            return render(
+                request,
+                'blog/post/search.html',
+                {
+                    'form': form,
+                    'query': query,
+                    'results': results
+                }
+            )
+      ```
+  - ### Stemming and removing stop words in different languages
+    ```python
+      search_vector = SearchVector('title', 'body', config='russian')
+      search_query = SearchQuery(query, config='russian')
+      results = (
+          Post.published.annotate(
+              search=search_vector,
+              rank=SearchRank(search_vector, search_query)
+          )
+          .filter(search=search_query)
+          .order_by('-rank')
+      )
+    ```
+  - ### Weighting queries
+    ```python
+      def post_search(request):
+          form = SearchForm()
+          query = None
+          results = []
+
+          if 'query' in request.GET:
+              form = SearchForm(request.GET)
+              if form.is_valid():
+                  query = form.cleaned_data['query']
+                  search_vector = SearchVector(
+                      'title', weight='A'
+                  ) + SearchVector('body', weight='B')
+                  search_query = SearchQuery(query)
+                  results = (
+                      Post.published.annotate(
+                          search=search_vector,
+                          rank=SearchRank(search_vector, search_query)
+                      )
+                      .filter(rank__gte=0.3)
+                      .order_by('-rank')
+                  )
+            return render(
+                request,
+                'blog/post/search.html',
+                {
+                    'form': form,
+                    'query': query,
+                    'result': result
+                }
+            )
+    ```
+
+  - ### Searching with trigram similarity
+    > python manage.py makemigrations --name=trigram_ext --empty blog
+
+    ```python
+        from django.contrib.postgres.operations import TrigramExtension
+        from django.db import migrations
+        class Migration(migrations.Migration):
+            dependencies = [
+                ('blog', '0004_post_tags'),
+            ]
+            operations = [
+                TrigramExtension()
+            ]
+    ```
+    > `python manage.py migrate blog` \
+    >Running migrations: \
+    >  Applying blog.0005_trigram_ext... OK
+    ```python
+    def post_search(request):
+        form = SearchForm()
+        query = None
+        results = []
+
+        if 'query' in request.GET:
+            form = SearchForm(request.GET)
+            if form.valid():
+                query = form.cleaned_data['query']
+                results = (
+                    Post.published.annotate(
+                        similarity=TrigramSimilarity('title', query),
+                    )
+                    .filter(similarity__gt=0.1)
+                    ,order_by('-similarity')
+                )
+        return render(
+            request,
+            'blog/post/search.html',
+            {
+                'form': form,
+                'query': query,
+                'results': results
+            }
+        ) 
+    ```
+
+  [back chapter03](#back-chapter03)
+
+
