@@ -16,7 +16,7 @@ class UserRegistrationForm(forms.ModelForm):
         widget=forms.PasswordInput,
     )
     class Meta:
-        model = get_user_model
+        model = get_user_model()
         fields = ['username', 'first_name', 'email']
 
     def clean_password2(self):
