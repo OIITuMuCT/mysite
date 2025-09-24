@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import render
 
+
 from .forms import (
     LoginForm, 
     UserRegistrationForm,
@@ -11,6 +12,8 @@ from .forms import (
     ProfileEditForm
 )
 from .models import Profile
+from .forms import LoginForm, UserRegistrationForm
+
 
 
 @login_required
@@ -51,7 +54,7 @@ def register(request):
             new_user.set_password(
                 user_form.cleaned_data['password']
             )
-            user_form.save()
+            new_user.save()
             Profile.objects.create(user=new_user)
             return render(
                 request,
@@ -95,3 +98,4 @@ def edit(request):
         'account/edit.html',
         {'user_form': user_form, 'profile_form': profile_form}
     )
+
