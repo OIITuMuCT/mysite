@@ -3,7 +3,26 @@
 
 - [Using the Django authentication framework](#using-the-django-authentication-framework)
 - [Using Django’s built-in authentication views](#using-djangos-built-in-authentication-views)
+- [Creating a login view](#creating-a-login-view)
+- [Using Django’s built-in authentication views](#using-djangos-built-in-authentication-views)
+- [Login and logout views](#login-and-logout-views)
+- [Change password views](#change-password-views)
+- [Reset password views](#reset-password-views)
+- [User registration](#user-registration)
+- [Extending the user model](#extending-the-user-model)
+- [Installing Pillow and serving media file](#installing-pillow-and-serving-media-file)
+- [Creating migrations for the profile model](#creating-migrations-for-the-profile-model)
 
+[5. Implementing Social Authentication](#5-implementing-social-authentication)
+---
+
+- [Using the messages framework]()
+- [Building a custom authentication backend]()
+  - [Preventing users from using an existing email]()
+- [Adding social authentication with Python Social Auth]()
+  - [Running the development server through HTTPS using Django Extensions]()
+  - [Adding authentication using Google]()
+  - [Creating a profile for users that register with social authentication]()
 
 # 4. Building a Social Website
 - ## Using the Django authentication framework
@@ -557,7 +576,7 @@
                 document_root=settings.MEDIA_ROOT
             )
       ```
-      > Creating migrations for the profile model
+    - ## Creating migrations for the profile model
       ```shell
         python manage.py makemigrations
         python manage.py migrate
@@ -676,3 +695,180 @@
           </p>
         {% endblock %}
       ```
+
+# 5. Implementing Social Authentication
+  - ## Using the messages framework
+    ```html
+    {% load static %}
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}{% endblock %}</title>
+        <link href="{% static "css/base.css" %}" rel="stylesheet">
+    </head>
+    <body>
+        <div id="header">
+            <span class="logo">Bookmarks</span>
+            {% if request.user.is_authenticated %}
+                <ul class='menu'>
+                    <li {% if section == 'dashboard' %}class="selected"{% endif %}>
+                        <a href="{% url "dashboard" %}">My dashboard</a>
+                    </li>
+                    <li {% if section == 'images' %}class="selected"{% endif %}>
+                        <a href="#">Images</a>
+                    </li>
+                        <li {% if section == 'people' %}class="selected"{% endif %}>
+                        <a href="#">People</a>
+                    </li>
+                </ul>
+            {% endif %}
+            <span class="user">
+                {% if request.user.is_authenticated %}
+                    Hello {{ request.user.first_name|default:request.user.username }},
+                    <form action="{% url "logout" %}" method="post">
+                        <button type="submit">Logout</button>
+                        {% csrf_token %}
+                    </form>
+                {% else %}
+                    <a href="{% url "login" %}">Log-in</a>
+                {% endif %}
+            </span>
+        </div>
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="{{ message.tags }}">
+                {{ message|safe }}
+                <a href="#" class="close">x</a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <div id="content">
+            {% block content %}
+            {% endblock %}
+        </div>
+    
+    </body>
+    </html>
+    ```
+    > Edit the account/views.py
+    ```python
+    from django.contrib import messages
+    # ...
+    @login_required
+    def edit(request):
+        if request.method == "POST":
+            user_form = UserEditForm(
+                instance = request.user,
+                data=request.POST
+            )
+            profile_form = ProfileEditForm(
+                instance=request.user.profile,
+                data=request.POST,
+                files=request.FILES
+            )
+            if user_form.is_valid() and profile_form.is_valid():
+                user_form.save()
+                profile_form.save()
+                message.success(
+                    request,
+                    'Profile updated successfully'
+                )
+            else:
+                message.error(request, 'Error updating your profile')
+        else:
+            user_form = UserEditForm(instance=request.user)
+            profile_form = ProfileEditForm(instance=request.user.profile)
+        
+    ```
+  - ## Building a custom authentication backend
+    > Create a new file inside the account app dir and name it authentication.py.
+    ```python
+    from django.contrib.auth.models import User
+
+    class EmailAuthBackend:
+        """ 
+        Authenticate using an e-mail address.
+        """
+
+        def authenticate(self, request, username=None, password=None):
+            try:
+                user = User.objects.get(email=username)
+                if user.check_password(password):
+                    return user
+                return None
+            except (User.DoesNotExist, UserMultipleObjectsReturned):
+                return None
+
+        def get_user(self, user_id):
+            try:
+                return User.objects.get(pk=user_id)
+            except User.DoesNotExist:
+                return None
+    ```
+    > Edit the settings.py
+    ```python
+        AUTHENTICATION_BACKENDS = [
+            'django.contrib.auth.backends.ModelBackend',
+            'account.authentication.EmailAuthBackend',
+        ]
+    ```
+    - ### Preventing users from using an existing email
+    ```python
+    class UserRegistrationForm(forms.ModelForm):
+        password = forms.CharField(
+            label='Password'
+            widget=forms.PasswordInput
+        )
+        password2 = forms.CharField(
+            label='Repeat password',
+            widget=forms.PasswordInput
+        )
+        class Meta:
+            model = User
+            field = ['username', 'first_name', 'email']
+
+        def clean_password2(self):
+            cd = self.clean_data
+            if cd['password'] != cd['password2']:
+                raise forms.ValidationError("Passwords don't match.")
+            return cd['password2']
+        
+        def clean_email(self):
+            data = self.cleaned_data['email']
+            if User.objects.filter(email=data).exists():
+                raise forms.ValidationError('Email already in use.')
+            return data
+
+    class UserEditForm(forms.ModelForm):
+        class Meta:
+            model = User
+            fields = ['firs_name', 'last_name', 'email']
+
+        def clean_email(self):
+            data = self.cleaned_data['email']
+            qs = User.objects.exclude(
+                id=self.instance.id
+            ).filter(
+                email=data
+            )
+            if qs.exists():
+                raise forms.ValidationError('Email already in use.')
+            return data
+    ```
+  - ## Adding social authentication with Python Social Auth
+    ```shell
+        python -m pip install social-auth-app-django==5.4.0
+    ```
+    ```python
+        INSTALLED_APPS = [
+            # ...
+            'social_django',
+        ]
+    ```
+    - ### Running the development server through HTTPS using Django Extensions
+    - ### Adding authentication using Google
+    - ### Creating a profile for users that register with social authentication
