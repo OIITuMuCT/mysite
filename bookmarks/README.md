@@ -870,5 +870,115 @@
         ]
     ```
     - ### Running the development server through HTTPS using Django Extensions
+        ```shell
+            python -m pip install django-extensions==3.2.3
+            python -m pip install werkzeug==3.0.2
+            python -m pip install pyOpenSSL==24.1.0
+        ```
+      > Edit the settings.py
+      ```python
+        INSTALLED_APPS = [
+            # ...
+            'django_extensions',
+        ]
+      ```
+        `python manage.py runserver_plus --cert-file cert.crt`
+        >`Open https://mysite.com:8000/account/login/`
     - ### Adding authentication using Google
+      > Google offers social authentication using OAuth 2.0, which allows users to sign in with Google accounts.You can read about Google’s OAuth2 implementation at https://developers.google.com/identity/protocols/OAuth2.
+      ```python
+      AUTHENTICATION_BACKENDS = [
+          'django.contrib.auth.backends.ModelBackend',
+          'account.authentication.EmailAuthBackend',
+          'social_core.backends.google.GoogleOAuth2',
+      ]
+      ```
+      > APIs & Services
+      >> `Credentials` >> `OAuth client ID`
+
+      > OAUTH consent screen
+      >> `External`
+
+      > App information
+      >> App name* `Bookmarks`
+
+      >> User support email* `myaccount@gmail.com`
+
+      > Application type* `Web application`
+
+      > Name* `Bookmarks`
+
+      > Authorised JavaScript origins
+      `https://mysite.com:8000`
+
+      > Authorised redirect URLs
+        `https://mysite.com:8000/social-auth/complete/google-oauth2/`
+
+      > Create a new file inside your project's root dir and name it .env.
+      ```
+        GOOGLE_OAUTH2_KEY= 'Client ID'
+        GOOGLe_OAUTH2_SECRET= 'Client secret'
+      ```
+      `python -m pip install python-decouple==3.8`
+      ```python
+        from decouple import config
+        #...
+        SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config('GOOGLE_OAUTH2_KEY')
+        SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config('GOOGLE_OAUTH2_SECRET')
+      ```
+
+
+      > Edit the registration/login.html
+      ```html
+      {% block content %}
+          ...
+          <div class="social">
+            <ul>
+              <li class="google">
+                <a href="{% url "social:begin" "google-oauth2" %}">
+                  Sign in with Google
+                </a>
+              </li>
+            </ul>
+          </div>
+      {% endblock %}
+      ```
     - ### Creating a profile for users that register with social authentication
+      > Add SOCIAL_AUTH_PIPELINE setting to the settings.py
+      ```python
+        SOCIAL_AUTH_PIPELINE = [
+            'social_core.pipeline.social_auth.social_details',
+            'social_core.pipeline.social_auth.social_uid',
+            'social_core.pipeline.social_auth.auth_allowed',
+            'social_core.pipeline.social_auth.social_user',
+            'social_core.pipeline.user.get_username',
+            'social_core.pipeline.user.create_user',
+            'social_core.pipeline.social_auth.associate_user',
+            'social_core.pipeline.social_auth.load_extra_data',
+            'social_core.pipeline.user.user_details',
+        ]
+      ```
+      > Edit the account/authentication.py
+      ```python
+        from account.models import Profile
+
+        def create_profile(backend, user, *args, **kwargs):
+            """ 
+            Create user profile for social authentication
+            """
+            Profile.objects.get_or_create(user=user)
+      ```
+      ```python
+        SOCIAL_AUTH_PIPELINE = [
+            'social_core.pipeline.social_auth.social_details',
+            'social_core.pipeline.social_auth.social_uid',
+            'social_core.pipeline.social_auth.auth_allowed',
+            'social_core.pipeline.social_auth.social_user',
+            'social_core.pipeline.user.get_username',
+            'social_core.pipeline.user.create_user',
+          =='account.authentication.create_profile',==
+            'social_core.pipeline.social_auth.associate_user',
+            'social_core.pipeline.social_auth.load_extra_data',
+            'social_core.pipeline.user.user_details',
+        ]
+      ```
