@@ -78,7 +78,7 @@ def edit(request):
             data=request.POST,
             files=request.FILES
         )
-        if user_form.is_valid():
+        if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
             messages.success(
@@ -93,8 +93,5 @@ def edit(request):
     return render(
         request,
         'account/edit.html',
-        {
-            "user_form": user_form,
-            "profile_form": profile_form
-        }
+        {'user_form': user_form, 'profile_form': profile_form}
     )
