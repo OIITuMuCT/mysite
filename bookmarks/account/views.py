@@ -6,7 +6,7 @@ from django.shortcuts import render
 
 
 from .forms import (
-    LoginForm, 
+    LoginForm,
     UserRegistrationForm,
     UserEditForm,
     ProfileEditForm
@@ -98,4 +98,3 @@ def edit(request):
         'account/edit.html',
         {'user_form': user_form, 'profile_form': profile_form}
     )
-
