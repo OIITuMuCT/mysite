@@ -24,6 +24,35 @@
   - [Adding authentication using Google]()
   - [Creating a profile for users that register with social authentication]()
 
+[6. Sharing Content on Your Website](#6-sharing-content-on-your-website)
+- [Creating an image bookmarking website](#creating-an-image-bookmarking-website)
+  - [Building the image model](#building-the-image-model)
+  - [Creating many-to-many relationships](#creating-many-to-many-relationships)
+  - [Registering the image model in the administration site](#registering-the-image-model-in-the-administration-site)
+- [Posting content from other websites](#posting-content-from-other-websites)
+  - [Cleaning form fields](#cleaning-form-fields)
+  - [Installing the Requests library](#installing-the-requests-library)
+  - [Overriding the save() method of a ModelForm](#overriding-the-save-method-of-a-modelform)
+  - [Building a bookmarklet with JavaScript](#building-a-bookmarklet-with-javascript)
+- [Creating a detail view for images](#creating-a-detail-view-for-images)
+- [Creating image thumbnails using easy-thumbnails](#creating-image-thumbnails-using-easy-thumbnails)
+- [Adding asynchronous actions with JavaScript](#adding-asynchronous-actions-with-javascript)
+  - [Loading JavaScript on the DOM](#loading-javascript-on-the-dom)
+  - [Cross-site request forgery for HTTP requests in JavaScript](#cross-site-request-forgery-for-http-requests-in-javascript)
+  - [Performing HTTP requests with JavaScript](#performing-http-requests-with-javascript)
+  - [Adding infinite scroll pagination to the image list](#adding-infinite-scroll-pagination-to-the-image-list)
+
+[7. Tracking User Action](#7-tracking-user-action)
+- [Building a follow system](#building-a-follow-system)
+- [Creating many-to-many relationships with an intermediate model](#creating-many-to-many-relationships-with-an-intermediate-model)
+- [Creating an activity stream application](#creating-an-activity-stream-application)
+- [Adding generic relations to models](#adding-generic-relations-to-models)
+- [Optimizing QuerySets for related objects](#optimizing-querysets-for-related-objects)
+- [Using signals for denormalizing counts](#using-signals-for-denormalizing-counts)
+- [Using Django Debug Toolbar to obtain relevant debug information](#using-django-debug-toolbar-to-obtain-relevant-debug-information)
+- [Counting image views with Redis](#counting-image-views-with-redis)
+- [Creating a ranking of the most viewed images with Redis](#creating-a-ranking-of-the-most-viewed-images-with-redis)
+
 # 4. Building a Social Website
 - ## Using the Django authentication framework
     - ### Creating a login view
@@ -982,3 +1011,275 @@
             'social_core.pipeline.user.user_details',
         ]
       ```
+
+# 6. Sharing Content on Your Website
+- ## Creating an image bookmarking website
+    > django-admin startapp images
+    ```python
+        INSTALLED_APPS = [
+            #...
+            'images.apps.ImagesConfig',
+        ]
+    ```
+  - ### Building the image model
+    ```python
+    from django.conf import settings
+    from django.db import models
+    from django.utils.text import slugify
+
+    class Image(models.Model):
+        user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='images_created',
+        on_delete=models.CASCADE
+        )
+        title = models.CharField(max_length=200)
+        slug = models.SlugField(max_length=200, blank=True)
+        url = models.URLField(max_length=2000)
+        image = models.ImageField(upload_to='images/%Y/%m/%d/')
+        description = models.TextField(blank=True)
+        created = models.DateTimeField(auto_now_add=True)
+
+        class Meta:
+            indexes = [
+                models.Index(fields=['-created']),
+            ]
+            ordering = ['-created']
+
+        def __str__(self):
+            return self.title
+
+        def save(self, *args, **kwargs):
+            if not self.slug:
+                self.slug = slugify(self.title)
+            super().save(*args, **kwargs)
+    ```
+  - ### Creating many-to-many relationships
+    ```python
+        users_like = models.ManyToManyField(
+            settings.AUTH_USER_MODEL,
+            related_name='images_liked',
+            blank=True
+        )
+    ```
+  - ### Registering the image model in the administration site
+    ```python
+    from django.contrib import admin
+    from .models import Image
+
+    @admin.register(Image)
+    class ImageAdmin(admin.ModelAdmin):
+        list_display = ['title', 'slug', 'image', 'created']
+        list_filter = ['created']
+    ```
+- ## Posting content from other websites
+    > Create a new forms.py inside images app
+    ```python
+    from django import forms
+    from .models import Image
+
+    class ImageCreateForm(forms.ModelForm):
+        class Meta:
+            model = Image
+            fields = ['title', 'url', 'description']
+            widgets = {
+                'url': forms.HiddenInput,
+            }
+    ```
+  - ### Cleaning form fields
+    ```python
+    def clean_url(self):
+        """ 
+        Validate extension image
+        """
+        url = self.cleaned_data['url']
+        valid_extensions = ['jpg', 'jpeg', 'png']
+        extension = url.rsplit('.', 1).lower()
+        if extension not in valid_extensions:
+            raise forms.ValidationError(
+                'The given URL does not match valid image extensions.'
+            )
+        return url
+    ```
+  - ### Installing the Requests library
+    > python -m pip install requests==2.31.0
+  - ### Overriding the save() method of a ModelForm
+    ```python
+    def save(self, force_insert=False, force_update=False, commit=True):
+        image = super().save(commit=False)
+        image_url = self.cleaned_data['url']
+        name = slugify(image.title)
+        extension = image_url.rsplit('.', 1)[1].lower()
+        image_name = f'{name}.{extension}'
+        # download image from the given URL
+        response = requests.get(image_url)
+        image.image.save(
+            image_name,
+            ContentFile(response.content),
+            save=False
+        )
+        if commit:
+            image.save()
+        return image
+    ```
+    > Edit the views.py to create file of the images app
+    ```python
+    from django.shortcuts import redirect, render
+    from django.contrib import messages
+    from django.contrib.auth.decorators import login_required
+    from .forms import ImageCreateForm
+
+    @login_required
+    def image_create(request):
+        if request.method == 'POST':
+            form = ImageCreateForm(data=request.POST)
+            if form.is_valid():
+                cd = form.cleaned_data
+                new_image = form.save(commit=False)
+                new_image.user = request.user
+                new_image.save()
+                messages.success(
+                    request, 'Image added successfully'
+                )
+                return redirect(new_image.get_absolute_url())
+        else:
+            form = ImageCreateForm(data=request.GET)
+        return render(
+            request,
+            'images/image/create.html',
+            {'section':'images', 'form':form}
+        )
+    ```
+    > Create a new urls.py inside the images app
+    ```python
+        from django.urls import path
+        from . import views
+
+        app_name = 'images'
+
+        urlpatterns = [
+            path('create/', views.image_create, name='create')
+        ]
+    ```
+    > Edit the main urls.py
+    ```python
+        path('images/', include('images.urls', namespace='images')),
+    ```
+    > Create a template to render the form. templates/images/image/create.html
+    ```html
+    {% extends "base.html" %}
+
+    {% block title %}Bookmarks an image{% endblock %}
+
+    {% block content %}
+    <h1>Bookmarks an image</h1>
+    <img src="{{ request.GET.url }}" class="image-preview">
+    <form action="" method="post">
+        {{ form.as_p }}
+        {% csrf_token %}
+        <input type="submit" value="Bookmark it!">
+    </form>
+    {% endblock %}
+    ```
+    > python manage.py runserver_plus --cert-file cert.crt
+
+    > Open https://127.0.0.1:8000/images/create/?title=%20Django%20and%20Duke&url=https://upload.wikimedia.org/wikipedia/commons/8/85/Django_Reinhardt_and_Duke_Ellington_%28Gottlieb%29.jpg
+  - ### Building a bookmarklet with JavaScript
+- ## Creating a detail view for images
+- ## Creating image thumbnails using easy-thumbnails
+- ## Adding asynchronous actions with JavaScript
+  - ### Loading JavaScript on the DOM
+  - ### Cross-site request forgery for HTTP requests in JavaScript
+  - ### Performing HTTP requests with JavaScript
+  - ### Adding infinite scroll pagination to the image list
+
+# 7. Tracking User Action
+- ## Building a follow system
+- ## Creating many-to-many relationships with an intermediate model
+    ```python
+        class Contact(models.Model):
+        user_from = models.ForeignKey(
+            settings.AUTH_USER_MODEL,
+            related_name='rel_from_set',
+            on_delete=models.CASCADE
+        )
+        user_to = models.ForeignKey(
+            settings.AUTH_USER_MODEL,
+            related_name='rel_to_set',
+            on_delete=models.CASCADE
+        )
+        created = models.DateTimeField(auto_now_add=True)
+
+        class Meta:
+            indexes = [
+                models.Index(fields=['-created']),
+            ]
+            ordering = ['-created']
+
+        def __str__(self):
+            return f'{self.user_from} follows {self.user_to}'
+
+    # Add the following field to User dynamically
+    user_model = get_user_model()
+    user_model.add_to_class(
+        'following',
+        models.ManyToManyField(
+            'self',
+            through=Contact,
+            related_name='followers',
+            symmetrical=False
+        )
+    )
+    ```
+    > python manage.py makemigrations account
+
+    > python manage.py migrate account
+    - ### Creating list and detail views user profile
+    ```python
+    from django.contrib.auth import authenticate, get_user_model, login
+    from django.shortcuts import get_object_or_404, render
+
+    # ...
+
+    User = get_user_model()
+
+    @login_required
+    def user_list(request):
+        users = User.objects.filter(is_active=True)
+        return render(
+            request,
+            'account/user/list.html',
+            {'section': 'people', 'users': users}
+        )
+    
+    @login_required
+    def user_detail(request, username):
+        user = get_objects_or_404(User, username=username, is_active=True)
+        return render(
+            request,
+            'account/user/detail.html',
+            {'section': 'people', 'user': user}
+        )
+    ```
+    > Edit the urls.py file of the account app
+    ```python
+    urlpatterns = [
+        # ...
+        path('users/', views.user_list, name='user_list'),
+        path('user/<username>/', views.user_detail, name='user_detail'),
+    ] 
+    ```
+    > Edit the settings.py
+    ```python
+    from django.urls import reverse_lazy
+
+    ABSOLUTE_URL_OVERRIDES = {
+        'auth.user': lambda u: reverse_lazy('user_detail', args=[u.username])
+    }
+- ## Creating an activity stream application
+- ## Adding generic relations to models
+- ## Optimizing QuerySets for related objects
+- ## Using signals for denormalizing counts
+- ## Using Django Debug Toolbar to obtain relevant debug information
+- ## Counting image views with Redis
+- ## Creating a ranking of the most viewed images with Redis
