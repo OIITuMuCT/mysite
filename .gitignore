@@ -5,6 +5,7 @@ __pycache__/
 *$py.class
 cert.crt
 cert.key
+media/
 # C extensions
 *.so
 
