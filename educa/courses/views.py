@@ -41,7 +41,7 @@ class ManageCourseListView(OwnerCourseMixin, ListView):
     #     qs = super().get_queryset()
     #     return qs.filter(owner=self.request.user)
 
-class CouseListView(TemplateResponseMixin, View):
+class CourseListView(TemplateResponseMixin, View):
     model = Course
     template_name = 'courses/course/list.html'
 
@@ -63,6 +63,10 @@ class CouseListView(TemplateResponseMixin, View):
             }
         )
 
+class CourseDetailView(DetailView):
+    model = Course
+    template_name = 'courses/course/detail.html'
+    
 
 class CourseCreateView(OwnerCourseEditMixin, CreateView):
     permission_required = 'courses.add_course'
@@ -166,7 +170,7 @@ class ContentDeleteView(View):
         module = content.module
         content.item.delete()
         content.delete()
-        return redirect('module_content_list', module.id)\
+        return redirect('module_content_list', module.id)
 
 class ModuleContentListView(TemplateResponseMixin, View):
     template_name = 'courses/manage/module/content_list.html'
