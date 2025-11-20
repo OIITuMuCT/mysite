@@ -40,9 +40,11 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'students.apps.StudentsConfig',
     "embed_video",
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -129,3 +131,7 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_REDIRECT_URL = reverse_lazy("student_course_list")
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
