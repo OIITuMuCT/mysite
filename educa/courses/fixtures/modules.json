@@ -1,0 +1,108 @@
+[
+{
+  "model": "courses.subject",
+  "pk": 1,
+  "fields": {
+    "title": "Mathematics",
+    "slug": "mathematics"
+  }
+},
+{
+  "model": "courses.subject",
+  "pk": 2,
+  "fields": {
+    "title": "Music",
+    "slug": "music"
+  }
+},
+{
+  "model": "courses.subject",
+  "pk": 3,
+  "fields": {
+    "title": "Physics",
+    "slug": "physics"
+  }
+},
+{
+  "model": "courses.subject",
+  "pk": 4,
+  "fields": {
+    "title": "Programming",
+    "slug": "programming"
+  }
+},
+{
+  "model": "courses.course",
+  "pk": 1,
+  "fields": {
+    "owner": 1,
+    "subject": 4,
+    "title": "Course 1",
+    "slug": "course1",
+    "overview": "",
+    "created": "2025-11-11T14:18:19.687Z"
+  }
+},
+{
+  "model": "courses.course",
+  "pk": 2,
+  "fields": {
+    "owner": 1,
+    "subject": 4,
+    "title": "Course 2",
+    "slug": "course2",
+    "overview": "",
+    "created": "2025-11-11T14:23:08.569Z"
+  }
+},
+{
+  "model": "courses.module",
+  "pk": 1,
+  "fields": {
+    "course": 1,
+    "title": "Module 1",
+    "description": "",
+    "order": 0
+  }
+},
+{
+  "model": "courses.module",
+  "pk": 2,
+  "fields": {
+    "course": 1,
+    "title": "Module 2",
+    "description": "",
+    "order": 1
+  }
+},
+{
+  "model": "courses.module",
+  "pk": 3,
+  "fields": {
+    "course": 1,
+    "title": "Module 3",
+    "description": "",
+    "order": 2
+  }
+},
+{
+  "model": "courses.module",
+  "pk": 4,
+  "fields": {
+    "course": 1,
+    "title": "Module 4",
+    "description": "",
+    "order": 3
+  }
+},
+{
+  "model": "courses.module",
+  "pk": 5,
+  "fields": {
+    "course": 2,
+    "title": "Module 1",
+    "description": "",
+    "order": 0
+  }
+}
+]

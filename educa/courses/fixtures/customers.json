@@ -1,0 +1,33 @@
+[
+{
+  "id":1,
+  "name":"Anna",
+  "city":"Moscow"
+},
+{
+  "id":2,
+  "name":"Boris",
+  "city":"Kazan"
+},
+{
+  "id":3,
+  "name":"Olga",
+  "city":"Moscow"
+
+},
+{
+  "id":4,
+  "name":"Ivan",
+  "city":"Sochi"
+},
+{
+  "id":5,
+  "name":"Ivan",
+  "city":"Moscow"
+},
+{
+  "id":6,
+  "name":"Pavel",
+  "city":"Saint Petersburg"
+}
+]
