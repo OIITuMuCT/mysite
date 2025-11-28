@@ -1,0 +1,63 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>{% block title %}Educa{% endblock %}</title>
+    <link href="{% static "css/base.css" %}" rel="stylesheet">
+    {% comment %} <link href="{% static "css/style.css" %}" rel="stylesheet"> {% endcomment %}
+  </head>
+  <body>
+    <div id="header">
+      <span class="logo"><a href="/" class="logo">Educa</a></span>
+      
+      <ul class="menu">
+        {% comment %} {% if request.user.is_authenticated %}
+        <li {% if section == "dashboard" %}class="selected"{% endif %}>
+          <a href="{% url "dashboard" %}">My dashboard</a>
+        </li>
+        {% endif %} {% endcomment %}
+        <span class="user">
+          {% if request.user.is_authenticated %}
+          {% comment %} Hello {{ request.user.first_name|default:request.user.username }} {% endcomment %}
+          <form action="{% url "logout" %}" method="post">
+            <button type="submit">Logout(Hello {{ request.user.first_name|default:request.user.username }})</button>
+            {% csrf_token %}
+          </form>
+          {% else %}
+          <a href="{% url "login" %}">Log-in</a>
+          {% endif %}
+        </span>
+
+     </ul>
+          
+        
+
+
+
+        {% comment %} {% if request.user.is_authenticated %}
+          <li>
+            <form action="{% url "logout" %}" method="post">
+              <button type="submit">Sign out</button>
+              {% csrf_token %}
+            </form>
+          </li>
+        {% else %}
+          <li><a href="{% url "login" %}">Sign in</a></li>
+        {% endif %} {% endcomment %}
+    </div>
+    <div id="content">
+      {% block content %}
+      {% endblock %}
+    </div>
+    {% block include_js %}
+    {% endblock %}
+    <script>
+      document.addEventListener('DOMContentLoaded', (event) => {
+        // DOM loaded
+        {% block domready %}
+        {% endblock %}
+      })
+    </script>
+  </body>
+</html>
